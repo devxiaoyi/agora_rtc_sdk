@@ -155,21 +155,16 @@ bool PcmFrameObserver::onPlaybackAudioFrameBeforeMixing(
     unsigned int uid, AudioFrame& audioFrame) {
   // Create new file to save received PCM samples
   if (!pcmFile_) {
-    std::string fileName = (++fileCount > 1)
-                               ? (outputFilePath_ + to_string(fileCount))
-                               : outputFilePath_;
+    std::string fileName = (++fileCount > 1) ? (outputFilePath_ + to_string(fileCount)) : outputFilePath_;
     if (!(pcmFile_ = fopen(fileName.c_str(), "w"))) {
-      AG_LOG(ERROR, "Failed to create received audio file %s",
-             fileName.c_str());
+      AG_LOG(ERROR, "Failed to create received audio file %s", fileName.c_str());
       return false;
     }
-    AG_LOG(INFO, "Created file %s to save received PCM samples",
-           fileName.c_str());
+    AG_LOG(INFO, "Created file %s to save received PCM samples", fileName.c_str());
   }
 
   // Write PCM samples
-  size_t writeBytes =
-      audioFrame.samplesPerChannel * audioFrame.channels * sizeof(int16_t);
+  size_t writeBytes = audioFrame.samplesPerChannel * audioFrame.channels * sizeof(int16_t);
   if (fwrite(audioFrame.buffer, 1, writeBytes, pcmFile_) != writeBytes) {
     AG_LOG(ERROR, "Error writing decoded audio data: %s", std::strerror(errno));
     return false;
@@ -190,16 +185,12 @@ bool H264FrameReceiver::OnEncodedVideoImageReceived(
     const agora::rtc::EncodedVideoFrameInfo& videoEncodedFrameInfo) {
   // Create new file to save received H264 frames
   if (!h264File_) {
-    std::string fileName = (++fileCount > 1)
-                               ? (outputFilePath_ + to_string(fileCount))
-                               : outputFilePath_;
+    std::string fileName = (++fileCount > 1) ? (outputFilePath_ + to_string(fileCount)) : outputFilePath_;
     if (!(h264File_ = fopen(fileName.c_str(), "w+"))) {
-      AG_LOG(ERROR, "Failed to create received video file %s",
-             fileName.c_str());
+      AG_LOG(ERROR, "Failed to create received video file %s", fileName.c_str());
       return false;
     }
-    AG_LOG(INFO, "Created file %s to save received H264 frames",
-           fileName.c_str());
+    AG_LOG(INFO, "Created file %s to save received H264 frames", fileName.c_str());
   }
 
   if (fwrite(imageBuffer, 1, length, h264File_) != length) {
@@ -224,18 +215,14 @@ int main(int argc, char* argv[]) {
   SampleOptions options;
   opt_parser optParser;
 
-  optParser.add_long_opt("token", &options.appId,
-                         "The token for authentication");
+  optParser.add_long_opt("token", &options.appId, "The token for authentication");
   optParser.add_long_opt("channelId", &options.channelId, "Channel Id");
   optParser.add_long_opt("userId", &options.userId, "User Id / default is 0");
-  optParser.add_long_opt("remoteUserId", &options.remoteUserId,
-                         "The remote user to receive stream from");
+  optParser.add_long_opt("remoteUserId", &options.remoteUserId, "The remote user to receive stream from");
   optParser.add_long_opt("audioFile", &options.audioFile, "Output audio file");
   optParser.add_long_opt("videoFile", &options.videoFile, "Output video file");
-  optParser.add_long_opt("sampleRate", &options.audio.sampleRate,
-                         "Sample rate for received audio");
-  optParser.add_long_opt("numOfChannels", &options.audio.numOfChannels,
-                         "Number of channels for received audio");
+  optParser.add_long_opt("sampleRate", &options.audio.sampleRate, "Sample rate for received audio");
+  optParser.add_long_opt("numOfChannels", &options.audio.numOfChannels, "Number of channels for received audio");
   optParser.add_long_opt("streamtype", &options.streamType, "the stream  type");
 
   if ((argc <= 1) || !optParser.parse_opts(argc, argv)) {
@@ -276,11 +263,9 @@ int main(int argc, char* argv[]) {
   ccfg.audioSubscriptionOptions = audioSubOpt;
   ccfg.autoSubscribeAudio = false;
   ccfg.autoSubscribeVideo = false;
-  ccfg.enableAudioRecordingOrPlayout =
-      false;  // Subscribe audio but without playback
+  ccfg.enableAudioRecordingOrPlayout = false;  // Subscribe audio but without playback
 
-  agora::agora_refptr<agora::rtc::IRtcConnection> connection =
-      service->createRtcConnection(ccfg);
+  agora::agora_refptr<agora::rtc::IRtcConnection> connection = service->createRtcConnection(ccfg);
   if (!connection) {
     AG_LOG(ERROR, "Failed to creating Agora connection!");
     return -1;
@@ -291,7 +276,7 @@ int main(int argc, char* argv[]) {
   subscriptionOptions.encodedFrameOnly = true;
   if (options.streamType == STREAM_TYPE_HIGH) {
     subscriptionOptions.type = agora::rtc::VIDEO_STREAM_HIGH;
-  } else if(options.streamType==STREAM_TYPE_LOW){
+  } else if(options.streamType == STREAM_TYPE_LOW){
     subscriptionOptions.type = agora::rtc::VIDEO_STREAM_LOW;
   } else{
     AG_LOG(ERROR, "It is a error stream type");
@@ -303,33 +288,28 @@ int main(int argc, char* argv[]) {
     connection->getLocalUser()->subscribeAllVideo(subscriptionOptions);
   } else {
     connection->getLocalUser()->subscribeAudio(options.remoteUserId.c_str());
-    connection->getLocalUser()->subscribeVideo(options.remoteUserId.c_str(),
-                                               subscriptionOptions);
+    connection->getLocalUser()->subscribeVideo(options.remoteUserId.c_str(), subscriptionOptions);
   }
 
   // Connect to Agora channel
-  if (connection->connect(options.appId.c_str(), options.channelId.c_str(),
-                          options.userId.c_str())) {
+  if (connection->connect(options.appId.c_str(), options.channelId.c_str(), options.userId.c_str())) {
     AG_LOG(ERROR, "Failed to connect to Agora channel!");
     return -1;
   }
 
   // Create local user observer
-  auto localUserObserver =
-      std::make_shared<SampleLocalUserObserver>(connection->getLocalUser());
+  auto localUserObserver = std::make_shared<SampleLocalUserObserver>(connection->getLocalUser());
 
   // Register audio frame observer to receive audio stream
   auto pcmFrameObserver = std::make_shared<PcmFrameObserver>(options.audioFile);
-  if (connection->getLocalUser()->setPlaybackAudioFrameBeforeMixingParameters(
-          options.audio.numOfChannels, options.audio.sampleRate)) {
+  if (connection->getLocalUser()->setPlaybackAudioFrameBeforeMixingParameters(options.audio.numOfChannels, options.audio.sampleRate)) {
     AG_LOG(ERROR, "Failed to set audio frame parameters!");
     return -1;
   }
   localUserObserver->setAudioFrameObserver(pcmFrameObserver.get());
 
   // Register h264 frame receiver to receive video stream
-  auto h264FrameReceiver =
-      std::make_shared<H264FrameReceiver>(options.videoFile);
+  auto h264FrameReceiver = std::make_shared<H264FrameReceiver>(options.videoFile);
   localUserObserver->setVideoEncodedImageReceiver(h264FrameReceiver.get());
 
   // Start receiving incoming media data

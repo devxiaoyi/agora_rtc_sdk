@@ -29,9 +29,7 @@ struct SampleOptions {
   std::string userId;
 };
 
-void SampleSendTask(
-    agora::rtc::IMediaControlPacketSender* ControlPacketSender,
-    bool& exitFlag) {
+void SampleSendTask(agora::rtc::IMediaControlPacketSender* ControlPacketSender, bool& exitFlag) {
   while (!exitFlag) {
     uint8_t buf[] = {'h', 'e', 'l', 'l', 'o', 'a', 'g', 'o', 'r', 'a'};
     ControlPacketSender->sendBroadcastMediaControlPacket(buf, sizeof(buf));
@@ -47,8 +45,7 @@ int main(int argc, char* argv[]) {
   SampleOptions options;
   opt_parser optParser;
 
-  optParser.add_long_opt("token", &options.appId,
-                         "The token for authentication / must");
+  optParser.add_long_opt("token", &options.appId, "The token for authentication / must");
   optParser.add_long_opt("channelId", &options.channelId, "Channel Id / must");
   optParser.add_long_opt("userId", &options.userId, "User Id / default is 0");
 
@@ -84,8 +81,7 @@ int main(int argc, char* argv[]) {
   ccfg.autoSubscribeAudio = false;
   ccfg.autoSubscribeVideo = false;
   ccfg.clientRoleType = agora::rtc::CLIENT_ROLE_BROADCASTER;
-  agora::agora_refptr<agora::rtc::IRtcConnection> connection =
-      service->createRtcConnection(ccfg);
+  agora::agora_refptr<agora::rtc::IRtcConnection> connection = service->createRtcConnection(ccfg);
   if (!connection) {
     AG_LOG(ERROR, "Failed to creating Agora connection!");
     return -1;
@@ -96,30 +92,25 @@ int main(int argc, char* argv[]) {
   connection->registerObserver(connObserver.get());
 
   // Create local user observer to monitor intra frame request
-  auto localUserObserver =
-      std::make_shared<SampleLocalUserObserver>(connection->getLocalUser());
+  auto localUserObserver = std::make_shared<SampleLocalUserObserver>(connection->getLocalUser());
 
   // Connect to Agora channel
-  if (connection->connect(options.appId.c_str(), options.channelId.c_str(),
-                          options.userId.c_str())) {
+  if (connection->connect(options.appId.c_str(), options.channelId.c_str(), options.userId.c_str())) {
     AG_LOG(ERROR, "Failed to connect to Agora channel!");
     return -1;
   }
 
   // Create media node factory
-  agora::agora_refptr<agora::rtc::IMediaNodeFactory> factory =
-      service->createMediaNodeFactory();
+  agora::agora_refptr<agora::rtc::IMediaNodeFactory> factory = service->createMediaNodeFactory();
   if (!factory) {
     AG_LOG(ERROR, "Failed to create media node factory!");
   }
-  agora::rtc::IMediaControlPacketSender* ControlPacketSender =
-      connection->getLocalUser()->getMediaControlPacketSender();
+  agora::rtc::IMediaControlPacketSender* ControlPacketSender = connection->getLocalUser()->getMediaControlPacketSender();
 
   // Wait until connected before sending media stream
   connObserver->waitUntilConnected(DEFAULT_CONNECT_TIMEOUT_MS);
 
-  std::thread sendThread(SampleSendTask, ControlPacketSender,
-                         std::ref(exitFlag));
+  std::thread sendThread(SampleSendTask, ControlPacketSender, std::ref(exitFlag));
 
   sendThread.join();
 

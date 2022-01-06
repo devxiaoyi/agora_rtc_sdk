@@ -150,8 +150,7 @@ static void sendOneH264Frame(
   videoEncodedFrameInfo.rotation = agora::rtc::VIDEO_ORIENTATION_0;
   videoEncodedFrameInfo.codecType = agora::rtc::VIDEO_CODEC_H264;
   videoEncodedFrameInfo.framesPerSecond = frameRate;
-  videoEncodedFrameInfo.frameType =
-      (h264Frame.get()->isKeyFrame ? agora::rtc::VIDEO_FRAME_TYPE::VIDEO_FRAME_TYPE_KEY_FRAME
+  videoEncodedFrameInfo.frameType = (h264Frame.get()->isKeyFrame ? agora::rtc::VIDEO_FRAME_TYPE::VIDEO_FRAME_TYPE_KEY_FRAME
                                    : agora::rtc::VIDEO_FRAME_TYPE::VIDEO_FRAME_TYPE_DELTA_FRAME);
 
   /*   AG_LOG(DEBUG, "sendEncodedVideoImage, buffer %p, len %d, frameType %d",
@@ -204,20 +203,13 @@ int main(int argc, char* argv[]) {
   optParser.add_long_opt("token", &options.appId, "The token for authentication / must");
   optParser.add_long_opt("channelId", &options.channelId, "Channel Id / must");
   optParser.add_long_opt("userId", &options.userId, "User Id / default is 0");
-  optParser.add_long_opt("audioFile", &options.audioFile,
-                         "The audio file in raw PCM format to be sent");
-  optParser.add_long_opt("videoFile", &options.videoFile,
-                         "The video file in YUV420 format to be sent");
-  optParser.add_long_opt("sampleRate", &options.audio.sampleRate,
-                         "Sample rate for the PCM file to be sent");
-  optParser.add_long_opt("numOfChannels", &options.audio.numOfChannels,
-                         "Number of channels for the PCM file to be sent");
-  optParser.add_long_opt("fps", &options.video.frameRate,
-                         "Target frame rate for sending the video stream");
-  optParser.add_long_opt("bwe", &options.video.showBandwidthEstimation,
-                         "show or hide bandwidth estimation info");
-  optParser.add_long_opt("localIP", &options.localIP,
-                         "Local IP");
+  optParser.add_long_opt("audioFile", &options.audioFile, "The audio file in raw PCM format to be sent");
+  optParser.add_long_opt("videoFile", &options.videoFile, "The video file in YUV420 format to be sent");
+  optParser.add_long_opt("sampleRate", &options.audio.sampleRate, "Sample rate for the PCM file to be sent");
+  optParser.add_long_opt("numOfChannels", &options.audio.numOfChannels, "Number of channels for the PCM file to be sent");
+  optParser.add_long_opt("fps", &options.video.frameRate, "Target frame rate for sending the video stream");
+  optParser.add_long_opt("bwe", &options.video.showBandwidthEstimation, "show or hide bandwidth estimation info");
+  optParser.add_long_opt("localIP", &options.localIP, "Local IP");
 
   if ((argc <= 1) || !optParser.parse_opts(argc, argv)) {
     std::ostringstream strStream;
@@ -277,8 +269,7 @@ int main(int argc, char* argv[]) {
   auto localUserObserver = std::make_shared<SampleLocalUserObserver>(connection->getLocalUser());
 
   // Connect to Agora channel
-  if (connection->connect(options.appId.c_str(), options.channelId.c_str(),
-                          options.userId.c_str())) {
+  if (connection->connect(options.appId.c_str(), options.channelId.c_str(), options.userId.c_str())) {
     AG_LOG(ERROR, "Failed to connect to Agora channel!");
     return -1;
   }
@@ -290,24 +281,21 @@ int main(int argc, char* argv[]) {
   }
 
   // Create audio data sender
-  agora::agora_refptr<agora::rtc::IAudioPcmDataSender> audioFrameSender =
-      factory->createAudioPcmDataSender();
+  agora::agora_refptr<agora::rtc::IAudioPcmDataSender> audioFrameSender = factory->createAudioPcmDataSender();
   if (!audioFrameSender) {
     AG_LOG(ERROR, "Failed to create audio data sender!");
     return -1;
   }
 
   // Create audio track
-  agora::agora_refptr<agora::rtc::ILocalAudioTrack> customAudioTrack =
-      service->createCustomAudioTrack(audioFrameSender);
+  agora::agora_refptr<agora::rtc::ILocalAudioTrack> customAudioTrack = service->createCustomAudioTrack(audioFrameSender);
   if (!customAudioTrack) {
     AG_LOG(ERROR, "Failed to create audio track!");
     return -1;
   }
 
   // Create video frame sender
-  agora::agora_refptr<agora::rtc::IVideoEncodedImageSender> videoFrameSender =
-      factory->createVideoEncodedImageSender();
+  agora::agora_refptr<agora::rtc::IVideoEncodedImageSender> videoFrameSender = factory->createVideoEncodedImageSender();
   if (!videoFrameSender) {
     AG_LOG(ERROR, "Failed to create video frame sender!");
     return -1;
@@ -316,8 +304,7 @@ int main(int argc, char* argv[]) {
   agora::base::SenderOptions option;
   option.ccMode = agora::base::CC_ENABLED;
   // Create video track
-  agora::agora_refptr<agora::rtc::ILocalVideoTrack> customVideoTrack =
-      service->createCustomVideoTrack(videoFrameSender, option);
+  agora::agora_refptr<agora::rtc::ILocalVideoTrack> customVideoTrack = service->createCustomVideoTrack(videoFrameSender, option);
   if (!customVideoTrack) {
     AG_LOG(ERROR, "Failed to create video track!");
     return -1;
@@ -339,8 +326,7 @@ int main(int argc, char* argv[]) {
   // Start sending media data
   AG_LOG(INFO, "Start sending audio & video data ...");
   std::thread sendAudioThread(SampleSendAudioTask, options, audioFrameSender, std::ref(exitFlag));
-  std::thread sendVideoThread(SampleSendVideoH264Task, options, videoFrameSender,
-                              std::ref(exitFlag));
+  std::thread sendVideoThread(SampleSendVideoH264Task, options, videoFrameSender, std::ref(exitFlag));
 
   sendAudioThread.join();
   sendVideoThread.join();
