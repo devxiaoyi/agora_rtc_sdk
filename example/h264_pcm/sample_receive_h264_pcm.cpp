@@ -77,6 +77,7 @@
 #include <string>
 #include <thread>
 #include <unistd.h>
+#include <sys/time.h>
 
 #include "IAgoraService.h"
 #include "NGIAgoraRtcConnection.h"
@@ -151,6 +152,39 @@ class H264FrameReceiver : public agora::rtc::IVideoEncodedImageReceiver {
   int fileSize_;
 };
 
+/**
+ * @name: GetLocalTimeWithMs
+ * @msg: 获取本地时间，精确到毫秒
+ * @param {type} 
+ * @return: string字符串，格式为YYYYMMDDHHMMSSsss，如：20190710130510368
+ */
+static std::string GetLocalTimeWithMs(void)
+{
+    std::string defaultTime = "19700101000000000";
+    try {
+        struct timeval curTime;
+        gettimeofday(&curTime, NULL);
+        int milli = curTime.tv_usec / 1000;
+
+        char buffer[80] = {0};
+        struct tm nowTime;
+        localtime_r(&curTime.tv_sec, &nowTime);//把得到的值存入临时分配的内存中，线程安全
+        strftime(buffer, sizeof(buffer), "%Y%m%d%H%M%S", &nowTime);
+
+        char currentTime[84] = {0};
+        snprintf(currentTime, sizeof(currentTime), "%s%03d", buffer, milli);
+
+        return currentTime;
+    }
+    catch(const std::exception& e) {
+        return defaultTime;
+    }
+    catch (...) {
+        return defaultTime;
+    }
+}
+
+#if 0
 bool PcmFrameObserver::onPlaybackAudioFrameBeforeMixing(
     unsigned int uid, AudioFrame& audioFrame) {
   // Create new file to save received PCM samples
@@ -179,6 +213,14 @@ bool PcmFrameObserver::onPlaybackAudioFrameBeforeMixing(
   }
   return true;
 }
+#else
+bool PcmFrameObserver::onPlaybackAudioFrameBeforeMixing(unsigned int uid, AudioFrame& audioFrame) {
+  // Write PCM samples
+  size_t writeBytes = audioFrame.samplesPerChannel * audioFrame.channels * sizeof(int16_t);
+  std::cout << "timeNowMs:" << GetLocalTimeWithMs() << " onPlaybackAudioFrameBeforeMixing is :" << audioFrame.buffer << std::endl;
+  return true;
+}
+#endif
 
 bool H264FrameReceiver::OnEncodedVideoImageReceived(
     const uint8_t* imageBuffer, size_t length,

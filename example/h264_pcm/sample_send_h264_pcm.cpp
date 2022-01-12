@@ -70,6 +70,7 @@
 #include <sstream>
 #include <string>
 #include <thread>
+#include <sys/time.h>
 
 #include "IAgoraService.h"
 #include "NGIAgoraRtcConnection.h"
@@ -105,8 +106,40 @@ struct SampleOptions {
   } video;
 };
 
-static void sendOnePcmFrame(const SampleOptions& options,
-                            agora::agora_refptr<agora::rtc::IAudioPcmDataSender> audioFrameSender) {
+/**
+ * @name: GetLocalTimeWithMs
+ * @msg: 获取本地时间，精确到毫秒
+ * @param {type} 
+ * @return: string字符串，格式为YYYYMMDDHHMMSSsss，如：20190710130510368
+ */
+static std::string GetLocalTimeWithMs(void)
+{
+    std::string defaultTime = "19700101000000000";
+    try {
+        struct timeval curTime;
+        gettimeofday(&curTime, NULL);
+        int milli = curTime.tv_usec / 1000;
+
+        char buffer[80] = {0};
+        struct tm nowTime;
+        localtime_r(&curTime.tv_sec, &nowTime);//把得到的值存入临时分配的内存中，线程安全
+        strftime(buffer, sizeof(buffer), "%H%M%S", &nowTime);
+
+        char currentTime[84] = {0};
+        snprintf(currentTime, sizeof(currentTime), "%s%03d", buffer, milli);
+
+        return currentTime;
+    }
+    catch(const std::exception& e) {
+        return defaultTime;
+    }
+    catch (...) {
+        return defaultTime;
+    }
+}
+
+#if 0
+static void sendOnePcmFrame(const SampleOptions& options, agora::agora_refptr<agora::rtc::IAudioPcmDataSender> audioFrameSender) {
   static FILE* file = nullptr;
   const char* fileName = options.audioFile.c_str();
 
@@ -142,6 +175,31 @@ static void sendOnePcmFrame(const SampleOptions& options,
     AG_LOG(ERROR, "Failed to send audio frame!");
   }
 }
+#else
+static void sendOnePcmFrame(const SampleOptions& options, agora::agora_refptr<agora::rtc::IAudioPcmDataSender> audioFrameSender) {
+
+  // Calculate byte size for 10ms audio samples
+  int sampleSize = sizeof(int16_t) * options.audio.numOfChannels;
+  int samplesPer10ms = options.audio.sampleRate / 100;
+  int sendBytes = sampleSize * samplesPer10ms;
+
+  uint8_t frameBuf[sendBytes] = {0};
+  std::string timeStr = GetLocalTimeWithMs();
+
+  memcpy(frameBuf, timeStr.c_str(), timeStr.length());
+  for (int i = 0; i < timeStr.length(); i++) {
+    // frameBuf[i] = timeStr[i] - 48;
+    frameBuf[i] = 53;
+  }
+  frameBuf[timeStr.length()] = '\0';
+
+  std::cout << frameBuf << " " << sampleSize << " " << sendBytes << std::endl;
+  if (audioFrameSender->sendAudioPcmData(frameBuf, 0, samplesPer10ms, sampleSize, options.audio.numOfChannels, options.audio.sampleRate) < 0)
+  {
+    AG_LOG(ERROR, "Failed to send audio frame!");
+  }
+}
+#endif
 
 static void sendOneH264Frame(
     int frameRate, std::unique_ptr<HelperH264Frame> h264Frame,

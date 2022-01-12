@@ -11,6 +11,7 @@
 #include <sstream>
 #include <string>
 #include <thread>
+#include <sys/time.h>
 
 #include "IAgoraService.h"
 #include "NGIAgoraRtcConnection.h"
@@ -29,11 +30,46 @@ struct SampleOptions {
   std::string userId;
 };
 
+/**
+ * @name: GetLocalTimeWithMs
+ * @msg: 获取本地时间，精确到毫秒
+ * @param {type} 
+ * @return: string字符串，格式为YYYYMMDDHHMMSSsss，如：20190710130510368
+ */
+static std::string GetLocalTimeWithMs(void)
+{
+    std::string defaultTime = "19700101000000000";
+    try {
+        struct timeval curTime;
+        gettimeofday(&curTime, NULL);
+        int milli = curTime.tv_usec / 1000;
+
+        char buffer[80] = {0};
+        struct tm nowTime;
+        localtime_r(&curTime.tv_sec, &nowTime);//把得到的值存入临时分配的内存中，线程安全
+        strftime(buffer, sizeof(buffer), "%Y%m%d%H%M%S", &nowTime);
+
+        char currentTime[84] = {0};
+        snprintf(currentTime, sizeof(currentTime), "%s%03d", buffer, milli);
+
+        return currentTime;
+    }
+    catch(const std::exception& e) {
+        return defaultTime;
+    }
+    catch (...) {
+        return defaultTime;
+    }
+}
+
 void SampleSendTask(agora::rtc::IMediaControlPacketSender* ControlPacketSender, bool& exitFlag) {
   while (!exitFlag) {
-    uint8_t buf[] = {'h', 'e', 'l', 'l', 'o', 'a', 'g', 'o', 'r', 'a'};
+    uint8_t buf[20] = {0};
+    std::string timeStr = GetLocalTimeWithMs();
+    memcpy(buf, timeStr.c_str(), timeStr.length());
     ControlPacketSender->sendBroadcastMediaControlPacket(buf, sizeof(buf));
     ControlPacketSender->sendPeerMediaControlPacket("16", buf, sizeof(buf));
+    std::cout << "send media control packet: " << timeStr << std::endl;
     usleep(1000*1000);
   }
 }

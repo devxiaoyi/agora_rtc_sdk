@@ -11,6 +11,7 @@
 #include <sstream>
 #include <string>
 #include <thread>
+#include <sys/time.h>
 
 #include "IAgoraService.h"
 #include "NGIAgoraRtcConnection.h"
@@ -37,6 +38,38 @@ struct SampleOptions {
   std::string remoteUserId;
 };
 
+/**
+ * @name: GetLocalTimeWithMs
+ * @msg: 获取本地时间，精确到毫秒
+ * @param {type} 
+ * @return: string字符串，格式为YYYYMMDDHHMMSSsss，如：20190710130510368
+ */
+static std::string GetLocalTimeWithMs(void)
+{
+    std::string defaultTime = "19700101000000000";
+    try {
+        struct timeval curTime;
+        gettimeofday(&curTime, NULL);
+        int milli = curTime.tv_usec / 1000;
+
+        char buffer[80] = {0};
+        struct tm nowTime;
+        localtime_r(&curTime.tv_sec, &nowTime);//把得到的值存入临时分配的内存中，线程安全
+        strftime(buffer, sizeof(buffer), "%Y%m%d%H%M%S", &nowTime);
+
+        char currentTime[84] = {0};
+        snprintf(currentTime, sizeof(currentTime), "%s%03d", buffer, milli);
+
+        return currentTime;
+    }
+    catch(const std::exception& e) {
+        return defaultTime;
+    }
+    catch (...) {
+        return defaultTime;
+    }
+}
+
 class MediaPacketReceiver : public agora::rtc::IMediaControlPacketReceiver {
  public:
   // agora::rtc::IMediaControlPacketReceiver
@@ -44,7 +77,8 @@ class MediaPacketReceiver : public agora::rtc::IMediaControlPacketReceiver {
 };
 
 bool MediaPacketReceiver::onMediaControlPacketReceived(uid_t uid, const uint8_t* packet, size_t length) {
-  std::cout << "Times passed in seconds: " << now() << "length is :" << length << ", buf is :";
+  // std::cout << "Times passed in seconds: " << now() << "length is :" << length << ", buf is :";
+  std::cout << "Times passed in seconds: " << now() << " timems: " << GetLocalTimeWithMs() << " length is :" << length << ", buf is :";
   for (int i = 0; i < length; i++) {
     std::cout << packet[i];
   }
